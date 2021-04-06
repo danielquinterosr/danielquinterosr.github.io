@@ -1,0 +1,185 @@
+---
+title: TS703 Metodología Investigación Cuantitativa<br> <br>Relaciones entre factores
+author: Daniel Quinteros Rojas<br> <br>Trabajo Social<br> <br>Universidad Arturo Prat
+date: Iquique, 05 de abril de 2021<br> <br>
+output: 
+  html_document:
+    toc: yes
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+---
+
+## 1. Introducción: relación entre factores
+
+Hasta ahora hemos revisado dos técnicas de análisis bivariado (*prueba-t* y *correlaciones*), que requieren de la existencia de al menos una variable de intervalo o de razón. Sin embargo, en la investigación social la mayor parte del tiempo trabajamos con variables nominales u ordinales: quintiles socioecónomicos, sexo, lugar de residencia, nacionalidad, nivel de estudios o tendencia política, entre muchas otras. Más aún, ten presente que todas las variables pueden ser reducidas a un nivel inferior de medición, pero no al revés: por ejemplo, podrías tomar la temperatura en ºC y terminar con una variable dicotómica (calor/frío), pero no podrías hacer el ejercicio inverso.
+
+> ¿Puedes recordar otras variables nominales u ordinales? ¿Puedes pensar en otras?
+
+Por esta razón, una técnica de análisis bivariado que nos puede ser de gran utilidad es la de **chi-cuadrado**: *una pueba estadística para evaluar hipótesis acerca de la relación entre dos variables categóricas* (Hernández Sampieri et al., 1998). Si ya leíste el Capítulo 13 de Ricthey Ferris, este video puede servir de reforzamiento sobre el cálculo de **chi-cuadrado**:
+
+<iframe width="560" height="315" src="https://www.youtube.com/embed/XvPEeQAjTW8" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+
+## 2. Tabla de frecuencias
+
+Todo análisis comienza por la descripción de las variables a utilizar y esta no es la excpeción. Sin embargo, los estadísticos descriptivos que hemos utilizado hasta ahora (media, desv. estándar, etc.) no son adecuados para variables cualitativas. Para este tipo de variables, utilizamos las tablas de frecuencias absolutas (*table*) y relativas (*prop.table*).
+
+Para comenzar, vamos a utilizar los datos de la [Encuesta de Convivencia Barrial e Interculturalidad 2019](http://cead.spd.gov.cl/estudios-y-encuestas/). Ahí podrán encontrar la presentación de resultados, el cuestionario y la base de datos (en formato SPSS). Alternativamente, he dejado los datos en un archivo csv que puedes descargar directamente a R, pero ten a mano el cuestionario: lo vas a necesitar más de una vez. 
+
+```{r}
+inter <- read.csv2(url("https://raw.githubusercontent.com/danielquinterosr/cursounap/master/interculturalidad.csv"), header=TRUE, sep=";", fileEncoding = "UTF-8")
+
+str(inter)
+```
+
+Como vemos con la función *str()*, es un *data.frame* que contiene 3757 casos y 389 variables. También podrás percatarte que los datos no contienen las etiquetas de valores, razón por la cual el cuestionario será vital. Si aún no lo encuentras, puedes [descargarlo directamente acá](http://cead.spd.gov.cl/?wpdmpro=cuestionario-encuesta-de-convivencia-barrial-e-interculturalidad-2019&wpdmdl=3035&).
+
+Describamos las frecuencias de la variable sexo:
+
+```{r}
+table(inter$sexo_seleccionado)
+```
+
+Como verás, al no tener las etiquetas de valores, necesitamos revisar el significado de cada categoría, para poder intepretar adecuadamente los resultados. Como se trata de una variable dicotómica, podemos utilizar la función *ifelse()* para crear una prueba lógica que, de cumplirse, tomará el primer valor y, en caso contrario, el segundo. En nuestro ejemplo, si el valor de la variables es igual a 1, entonces será *hombre* y si no, será *mujer* (también podríamos haber utilizado *ifelse(inter$sexo_seleccionado==2, "Mujer", "Hombre")*). 
+
+```{r}
+inter$sexo_seleccionado <- ifelse(inter$sexo_seleccionado==1,"Hombre","Mujer")
+table(inter$sexo_seleccionado)
+prop.table(table(inter$sexo_seleccionado))*100
+```
+
+Ahora si podemos dar cuenta de que en nuestra muestra hay 1384 hombres y 2373 mujeres, los que respectivamente representan un 36,8% y 63,1% del total. Con esta misma forma de proceder, podemos revisar otras variables, como el caso de *region*, que puede ser recodificada para agregar las etiquetas correspondientes y, además, definir el orden o niveles de la variable con *factor()*. 
+
+
+```{r}
+table(inter$region)
+
+inter$region[inter$region==1] <- "Tarapacá"
+inter$region[inter$region==2] <- "Antofagasta"
+inter$region[inter$region==13] <- "Metropolitana"
+
+inter$region <- factor(inter$region, levels = c("Tarapacá", "Antofagasta","Metropolitana")) #si no lo defines, automáticamente lo asigna según orden alfabético.
+
+table(inter$region)
+```
+
+* ¿Cuántos casos se encuestaron por región?
+* ¿Cuál es el porcentaje de casos encuestados en Tarapacá? (¿Que faltaría para saberlo?)
+
+Veamos ahora la nacionalidad de los integrantes del hogar:
+
+```{r}
+table(inter$nacionalidad_hogar) #nacionalidades en el hogar
+
+inter$nacionalidad_hogar[inter$nacionalidad_hogar==1] <- "Sólo chilenos"
+inter$nacionalidad_hogar[inter$nacionalidad_hogar==2] <- "Chilenos y extranjeros"
+inter$nacionalidad_hogar[inter$nacionalidad_hogar==3] <- "Sólo extranjeros"
+
+#si quisieras definir el orden de los valores, deberías aplicar factor()
+```
+
+Por último, vamos a tomar una variable de las incluidas en la pregunta Nro. 54. respecto a si ha tenido contacto con la policía en los últimos 6 meses: 
+
+```{r}
+table(inter$P54f) #contacto con policias
+inter$P54f[inter$P54f==1] <- "Sí"
+inter$P54f[inter$P54f==2] <- "No"
+inter$P54f[inter$P54f==8] <- NA #define valores 8 y 9 como perdidos
+inter$P54f[inter$P54f==9] <- NA
+
+table(inter$P54f)
+prop.table(table(inter$P54f))*100
+```
+
+Una vez recodificada nuestra variable de interés, podemos observar que 405 personas tuvieron algún contacto con la policía (no sabemos de que tipo), lo cual representa el 10,9% de la muestra total. Con esta información, ahora podemos continuar hacia el análisis bivariado, a partir de las **tablas cruzadas o de contingencia**. 
+
+## 3. Tabla de contingencia
+
+Las tablas de contingencia son tablas que permiten comparar dos variables nominales u ordinales a la vez (de ahí lo de **bi**variado). En nuestro caso, nos vamos a preguntar si existe alguna asociación entre contacto con la policía y sexo del o la entrevistada. Como sabemos que la proporción total de personas que tuvieron contacto es de 10,9%, a partir de lo cual podemos suponer que *de no existir relación alguna*, lo más probable es que veamos porcentajes similares tanto para hombres como para mujeres.
+
+Si quieres revisar como se construye manualmente una tabla de contingencia, sugiero revises la [Clase 04: Chi-cuadrado (05abr2021)](https://web.microsoftstream.com/video/de6ccc68-0227-4d6b-8549-d39b9dab2d39?st=1210). No obstante, R permite realizar esta operación de manera bastante intuitiva a partir de la función *CrossTable()* del paquete *gmodels*:
+
+```{r}
+library(gmodels)
+with(inter, CrossTable(sexo_seleccionado,P54f))
+```
+
+La primera parte muestra una leyenda con la cual puedes interpretar los resultados de la tabla. Así, la primera línea de cada cuadro muestra la frecuencia absoluta (N), luego la contribución a chi-cuadrado, total fila (row), total columna (col) y el total de la tabla. 
+
+> Con esta información, es posible observar que mientras el 10% de las mujeres declaran haber tenido contacto con la policía, en el caso de los hombres este porcentaje sube a 12,4%. Para determinar si existe relación entre ambas variables, la pregunta clave es *¿qué tan significativa es la diferencia entre hombres y mujeres respecto a la proporción de casos que declaran haber tenido un contacto con la policía?*. Al igual que en otros casos, para responder esta pregunta podemos formular una *prueba de hipótesis*, utilizando la *distribución chi-cuadrado*.
+
+
+## 4. Chi-cuadrado
+
+Para realizar esta prueba estadística, necesitamos contrastar el resultado de chi-cuadrado con el valor crítico de la prueba, el que va a depender esencialmente del *nivel de confianza* deseado y de los *grados de libertad (d.f.)* de la tabla. El resultado de este ejercicio nos va a permitir tomar una decisión respecto a nuestra prueba de hipótesis:
+
+> H0: no existe asociación entre la proporción de mujeres y hombres que declaran haber tenido algún contacto con la policía durante los últimos 6 meses 
+
+> H1: existe asociación entre entre la proporción de mujeres y hombres que declaran haber tenido algún contacto con la policía durante los últimos 6 meses
+
+Para la primera parte de este procedimiento, deberemos calcular el valor de chi-cuadrado a partir de la diferencia entre valores observados y valores esperados, los que se calculan tal como se mostró en el ejemplo de la [Clase 04: Chi-cuadrado (05abr2021)](https://web.microsoftstream.com/video/de6ccc68-0227-4d6b-8549-d39b9dab2d39?st=1210).
+
+<center>![](/Users/danielquinterosr/Google Drive/UNAP/Cursos/Estadistica/2021 TS Metodologia CUANTI/chi-cuadrado.png){width=50%}</center>
+
+Como puedes ver en la fórmula, el valor de chi-cuadrado depende esencialmente de la diferencia entre las frecuencias observadas y las que se esperarían teóricamente en caso de que no exista ninguna relación entre las variables. Por tanto, a mayor valor de chi-cuadrado, mayor distancia entre ambas frecuencias, lo que indicaría un mayor grado de asociatividad. En efecto, si las frecuencias observadas fueran exactamente igual que las esperadas, el resultado de la fórmula daría **CERO**, lo que indica absoluta independencia, o bien, ausencia de asociación.
+
+Para nuestro ejemplo, podemos tomar ambas variables y agregar a la función *CrossTable()* el parámetro *chisq=TRUE*, lo que nos entregará el resultado de una prueba chi-cuadrado:
+
+```{r}
+with(inter, CrossTable(sexo_seleccionado,P54f,chisq = TRUE))
+```
+
+Es la misma tabla que vimos anteriormente, pero con el agregado de la prueba de Chi-cuadrado de Pearson [(sí, el mismo Karl Pearson de las correlaciones)](https://es.wikipedia.org/wiki/Karl_Pearson). Como verás, por defecto nos entrega el *valor de chi-cuadrado* y el *valor de chi-cuadrado utilizando la corrección de continuidad o corrección de Yates* que se utiliza cuando al menos una frecuencia esperada es menor a 5. No es nuestro caso ahora, pero si lo fuera, la fórmula corregida es:
+
+<center>![](/Users/danielquinterosr/Google Drive/UNAP/Cursos/Estadistica/2021 TS Metodologia CUANTI/chi-cuadradoYATES.svg){width=60%}</center>
+
+
+Luego, si observamos los resultados de la prueba chi-cuadrado de Pearson, vemos tres valores: 
+
+* el valor de chi-cuadrado (calculado)
+* los grados de libertad (d.f): Nro. filas-1 x Nro. columnas -1
+* el valor-p (mismo que hemos utilizado anteriormente)
+
+De este modo, viendo la tabla sabemos que el valor de chi-cuadrado es *5,039*. Sin embargo, debido a que la distribución chi-cuadrado depende esencialmente de los grados de libertad, este valor no es suficiente por sí solo para confirmar o descartar la asociación entre ambas variables. Lo puedes confirmar por ti mismo revisando [este muy buen ejemplo que te permite modificar los parámetros](https://www.geogebra.org/m/YQCfcR2J) de la distribución chi-cuadrado para diferentes grados de libertad. Por ahora, puedes observar la siguiente imagen y ver cómo cambia la curva de acuerdo a los grados de libertad (k):
+
+<center>![](/Users/danielquinterosr/Google Drive/UNAP/Cursos/Estadistica/2021 TS Metodologia CUANTI/chi-cuadrado2.png){width=80%}</center>
+
+Como se ve en la imagen anterior, a mayor grados de libertad, mayor debe ser el valor de chi-cuadrado para poder caer dentro de la región crítica de la prueba, donde podríamos rechazar H0. Esta segunda parte de la prueba, que consiste en contrastar el valor chi-cuadrado con el valor crítico que se corresponde con el nivel de significancia deseado, está resumida en el *valor-p*. Si queremos utilizar un nivel de confianza de 95%, sabemos que este valor debería ser inferior a **0,05**, lo que indicaría que el valor cae dentro de la región de rechazo. De lo contrario, no tendríamos evidencia para rechazar H0 y, por tanto, para descartar la independencia entre ambas variables. 
+
+<center>![](/Users/danielquinterosr/Google Drive/UNAP/Cursos/Estadistica/2021 TS Metodologia CUANTI/chi-cuadrado-3.jpg){width=60%}</center>
+
+> En el ejemplo, nuestro valor de chi-cuadrado presenta un *valor-p igual a 0,025*, el cual es inferior a **0,05**. A partir de esta información, tenemos evidencia suficiente para rechazar la hipótesis nula y asumir que existe una relación entre contacto con la policía y sexo.  
+
+NOTA1: Aunque no es nuestro caso, otra forma de superar la limitación de contar con casillas que no tengan frecuencias muy pequeñas, sería utilizar la prueba de Fisher, que se interpreta de forma similar. 
+
+```{r}
+with(inter, fisher.test(sexo_seleccionado,P54f))
+```
+
+NOTA2: Una solución alternativa, especialmente cuando tenemos muestras muy pequeñas, es utilizar una simulación Monte Carlo, la que básicamente nos va a calcular el valor de chi-cuadrado a partir del muestreo repetido que, como sabemos, tienden a producir estimaciones muy cercanas al valor real. 
+
+```{r}
+tabla1 <- table(inter$sexo_seleccionado, inter$P54f)
+chisq.test(tabla1, simulate.p.value = TRUE)
+```
+
+## 5. Ejercicio: contacto con instituciones públicas según sexo
+
+En base a todo lo realizado hasta acá, para esta semana deberás replicar la prueba de chi-cuadrado para todas las variables incluídas en la pregunta Nro. 54 del cuestionario, respecto al sexo del entrevistado. Para ello, deberás realizar:
+
+1. Análisis descriptivo de las variables
+2. Prueba de hipótesis para cada caso
+3. Análisis bivariado (tabla de contingencia)
+4. Decisión sobre la prueba de hipótesis (en base a chi-cuadrado)
+
+
+Si aún tienes dudas sobre cómo utilizar las funciones de R para pruebas de chi-cuadrado, puedes mirar el siguiente video:
+<iframe width="560" height="315" src="https://www.youtube.com/embed/ImcqxAqVABE" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+
+© danielquinterosr
+
+
+
+
